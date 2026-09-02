@@ -16,6 +16,11 @@ resource "aws_internet_gateway" "this" {
   }
 }
 
+locals {
+  # Normalizes both branches to the same type: map(string) of AZ -> AZ
+  nat_azs = var.single_nat_gateway ? { "shared" = keys(var.azs)[0] } : { for az in keys(var.azs) : az => az }
+}
+
 # ---------- Public subnets (for_each over AZ map) ----------
 resource "aws_subnet" "public" {
   for_each = var.azs
@@ -49,7 +54,7 @@ resource "aws_subnet" "private" {
 
 # ---------- NAT Gateway(s) — cost lever ----------
 resource "aws_eip" "nat" {
-  for_each = var.single_nat_gateway ? { "shared" = tolist(keys(var.azs))[0] } : var.azs
+  for_each = local.nat_azs
 
   domain = "vpc"
 
@@ -59,7 +64,7 @@ resource "aws_eip" "nat" {
 }
 
 resource "aws_nat_gateway" "this" {
-  for_each = var.single_nat_gateway ? { "shared" = tolist(keys(var.azs))[0] } : var.azs
+  for_each = local.nat_azs
 
   allocation_id = aws_eip.nat[each.key].id
   subnet_id     = aws_subnet.public[each.value].id
@@ -117,7 +122,7 @@ resource "aws_route_table_association" "private" {
 # ---------- S3 Gateway Endpoint (free — cost lever) ----------
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.this.id
-  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
+  service_name      = "com.amazonaws.${data.aws_region.current.region}.s3"
   vpc_endpoint_type = "Gateway"
   route_table_ids   = concat([aws_route_table.public.id], [for rt in aws_route_table.private : rt.id])
 
