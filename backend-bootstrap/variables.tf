@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "project" {
   description = "Project name, used for resource naming"
   type        = string
-  default     = "K8S-EKS"
+  default     = "k8s-eks"
 }
 
 variable "environment" {
