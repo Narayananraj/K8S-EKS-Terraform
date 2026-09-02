@@ -15,3 +15,9 @@ variable "environment" {
   type        = string
   default     = "shared"
 }
+
+variable "force_destroy_state_bucket" {
+  description = "DANGER: allows bucket deletion even with objects/versions inside. Only true for personal dev/learning accounts, NEVER true for real prod backends."
+  type        = bool
+  default     = false
+}
